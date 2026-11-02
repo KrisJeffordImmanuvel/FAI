@@ -1,7 +1,7 @@
 """SQLAlchemy ORM models for the library agent."""
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+from datetime import date, datetime, timezone
 from typing import Any
 
 from sqlalchemy import (
@@ -23,7 +23,7 @@ from .db import Base
 
 
 def utcnow() -> datetime:
-    return datetime.now(UTC).replace(tzinfo=None)
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 class User(Base):

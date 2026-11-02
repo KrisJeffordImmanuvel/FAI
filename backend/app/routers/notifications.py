@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
@@ -103,7 +103,7 @@ def mark_read(notification_id: int, db: Session = Depends(get_db), user: User = 
     own_member_or_staff(user, n.member_id)
     if n.status == "sent":
         n.status = "read"
-        n.read_at = datetime.now(UTC).replace(tzinfo=None)
+        n.read_at = datetime.now(timezone.utc).replace(tzinfo=None)
         db.commit()
     return S.notification(n)
 
@@ -114,7 +114,7 @@ def mark_all_read(db: Session = Depends(get_db), user: User = Depends(current_us
         raise HTTPException(400, "Only member accounts have an inbox")
     count = 0
     for n in db.scalars(select(Notification).where(Notification.member_id == user.member_id, Notification.status == "sent")):
-        n.status, n.read_at = "read", datetime.now(UTC).replace(tzinfo=None)
+        n.status, n.read_at = "read", datetime.now(timezone.utc).replace(tzinfo=None)
         count += 1
     db.commit()
     return {"marked": count}
