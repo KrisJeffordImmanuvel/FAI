@@ -623,7 +623,17 @@ def ensure_seeded() -> bool:
     return True
 
 
+def _safe_console() -> None:
+    """Never crash on Windows consoles that are not UTF-8 (e.g. cp1252)."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")  # type: ignore[attr-defined]
+        except (AttributeError, ValueError):
+            pass
+
+
 def main() -> None:
+    _safe_console()
     parser = argparse.ArgumentParser(description="Seed the library agent database")
     parser.add_argument("--reset", action="store_true", help="drop all data and reseed")
     args = parser.parse_args()

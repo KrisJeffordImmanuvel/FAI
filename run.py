@@ -70,7 +70,17 @@ def seed(reset: bool) -> None:
     run([str(PY), "-m", "app.seed"] + (["--reset"] if reset else []), BACKEND)
 
 
+def _safe_console() -> None:
+    """Never crash on Windows consoles that are not UTF-8 (e.g. cp1252)."""
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(errors="replace")  # type: ignore[attr-defined]
+        except (AttributeError, ValueError):
+            pass
+
+
 def main() -> None:
+    _safe_console()
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--reset", action="store_true", help="wipe and re-seed the database")
     ap.add_argument("--test", action="store_true", help="run all tests and exit")
