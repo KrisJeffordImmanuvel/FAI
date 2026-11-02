@@ -172,9 +172,17 @@ def choose_channel(level: str, preference: str) -> tuple[str, str]:
 
 
 # ---------------------------------------------------------------- templates
+def greeting_name(full: str) -> str:
+    """'Aarav Sharma' → 'Aarav'; 'Dr. Meera Iyer' → 'Dr. Iyer' (polite form for titled members)."""
+    parts = full.split()
+    if parts and parts[0].rstrip(".").lower() in {"dr", "prof", "mr", "mrs", "ms"} and len(parts) > 1:
+        return f"{parts[0]} {parts[-1]}"
+    return parts[0] if parts else "Member"
+
+
 def render(kind: str, ctx: dict[str, Any]) -> tuple[str, str]:
     """Polite, context-specific message templates."""
-    name = ctx.get("member_name", "Member").split(" ")[0]
+    name = greeting_name(ctx.get("member_name", "Member"))
     title = ctx.get("title", "your book")
     due = ctx.get("due_on", "")
     if kind == "due_soon":
