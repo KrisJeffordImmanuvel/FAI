@@ -6,6 +6,8 @@
     python run.py --test     run the backend (pytest) and frontend (Vitest) test suites
     python run.py --dev      hot-reload mode: API on :8000 and Vite dev server on :5173
     python run.py --no-browser   start without opening the website automatically
+    python run.py --console  print every AI technique's output in the terminal (no website)
+    python run.py --verbose  also show one log line per web request
 
 The website opens in your default browser as soon as the server is ready.
 In VS Code just press F5 (see .vscode/launch.json). Works on Windows, macOS and Linux.
@@ -94,7 +96,8 @@ def open_when_ready(url: str, check_url: str, enabled: bool) -> None:
         if enabled:
             print("  Opening it in your browser… (use --no-browser to skip)", flush=True)
             webbrowser.open(url)
-        print("  Server logs appear below. Press Ctrl+C (or Stop in VS Code) to stop.\n", flush=True)
+        print("  Everything the agent perceives, decides and does is printed below as it happens.", flush=True)
+        print("  Try it: Agent control → Run one cycle / Play full demo. Press Ctrl+C (or Stop in VS Code) to stop.\n", flush=True)
 
     threading.Thread(target=worker, daemon=True).start()
 
@@ -169,6 +172,8 @@ def main() -> None:
     ap.add_argument("--dev", action="store_true", help="run API + Vite dev server with hot reload")
     ap.add_argument("--port", type=int, default=8000)
     ap.add_argument("--no-browser", action="store_true", help="do not open the website automatically")
+    ap.add_argument("--console", action="store_true", help="print the AI outputs in the terminal (no website)")
+    ap.add_argument("--verbose", action="store_true", help="also log every HTTP request")
     args = ap.parse_args()
 
     ensure_python()
@@ -178,6 +183,12 @@ def main() -> None:
         run([str(PY), "-m", "pytest", "-q"], BACKEND)
         step("Frontend tests (Vitest)")
         run([NPM, "test"], FRONTEND)
+        return
+
+    if args.console:
+        seed(False)
+        step("Running every AI technique and printing the results")
+        run([str(PY), "-m", "app.console_demo"], BACKEND)
         return
 
     url = f"http://localhost:{args.port}"
@@ -193,6 +204,9 @@ def main() -> None:
     ensure_node(build=not args.dev)
     seed(args.reset)
     uvicorn = [str(PY), "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", str(args.port)]
+    if not args.verbose:
+        uvicorn.append("--no-access-log")  # keep the terminal focused on what the agent does
+    CHILD_ENV["LIBRARY_CONSOLE_LOG"] = "1"  # the server prints every agent decision live
     if args.dev:
         step(f"Starting API on :{args.port} and Vite on :5173 (Ctrl+C to stop)")
         api = subprocess.Popen(uvicorn + ["--reload"], cwd=BACKEND, env=CHILD_ENV)

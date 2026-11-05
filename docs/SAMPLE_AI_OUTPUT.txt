@@ -1,0 +1,222 @@
+Intelligent Library Circulation, Fine Calculation and Priority Notification Agent
+Terminal output of every AI technique · simulated date 2026-11-03 · working on a temporary copy of the database
+
+══════════════════════════════════════════════════════════════════════════════
+ 1. The agent (PEAS)
+ AI concept: intelligent agent · task environment
+══════════════════════════════════════════════════════════════════════════════
+             │ Description                                                                                                      
+ ────────────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+ Performance │ fewer/shorter overdues · fast turnover of reserved books · exact fines · low spam · no prediction-based penalties
+ Environment │ books & copies · members · loans · reservations · fines · policies · holidays · librarians · calendar            
+ Actuators   │ notifications · fine updates · copy allocation · approval requests · recommendations · logs                      
+ Sensors     │ loan/reservation/fine records · member history · ML late-return risk (advisory)                                  
+ Environment: partially observable, stochastic, sequential, dynamic, discrete, multi-agent
+
+══════════════════════════════════════════════════════════════════════════════
+ 2. Deterministic fine calculation
+ AI concept: rule-based procedure (no machine learning)
+══════════════════════════════════════════════════════════════════════════════
+ Student policy: grace 2 days · ₹2/day (days 1-7) · ₹5/day (8-14) · ₹10/day (15+) · cap ₹300 · Sundays free · holiday 2026-11-09
+ Due 2026-11-04 · returned 2026-11-22
+ Date       │ Day │ Treatment               │ Chargeable # │ Charge │ Running total
+ ───────────┼─────┼─────────────────────────┼──────────────┼────────┼──────────────
+ 2026-11-05 │   1 │ Grace period            │            — │     ₹0 │            ₹0
+ 2026-11-06 │   2 │ Grace period            │            — │     ₹0 │            ₹0
+ 2026-11-07 │   3 │ Slab rate ₹2/day        │            1 │     ₹2 │            ₹2
+ 2026-11-08 │   4 │ Library closed (Sunday) │            — │     ₹0 │            ₹2
+ 2026-11-09 │   5 │ Library holiday         │            — │     ₹0 │            ₹2
+ 2026-11-10 │   6 │ Slab rate ₹2/day        │            2 │     ₹2 │            ₹4
+ 2026-11-11 │   7 │ Slab rate ₹2/day        │            3 │     ₹2 │            ₹6
+ 2026-11-12 │   8 │ Slab rate ₹2/day        │            4 │     ₹2 │            ₹8
+ 2026-11-13 │   9 │ Slab rate ₹2/day        │            5 │     ₹2 │           ₹10
+ 2026-11-14 │  10 │ Slab rate ₹2/day        │            6 │     ₹2 │           ₹12
+ 2026-11-15 │  11 │ Library closed (Sunday) │            — │     ₹0 │           ₹12
+ 2026-11-16 │  12 │ Slab rate ₹2/day        │            7 │     ₹2 │           ₹14
+ 2026-11-17 │  13 │ Slab rate ₹5/day        │            8 │     ₹5 │           ₹19
+ 2026-11-18 │  14 │ Slab rate ₹5/day        │            9 │     ₹5 │           ₹24
+ 2026-11-19 │  15 │ Slab rate ₹5/day        │           10 │     ₹5 │           ₹29
+ 2026-11-20 │  16 │ Slab rate ₹5/day        │           11 │     ₹5 │           ₹34
+ 2026-11-21 │  17 │ Slab rate ₹5/day        │           12 │     ₹5 │           ₹39
+ 2026-11-22 │  18 │ Library closed (Sunday) │            — │     ₹0 │           ₹39
+ Result: 18 day(s) overdue: 2 grace, 4 excluded (holidays/Sundays), 12 chargeable → ₹39
+ Lost-book example: Declared lost: overdue fine ₹279 + replacement ₹650 + processing ₹100 = ₹1029
+
+══════════════════════════════════════════════════════════════════════════════
+ 3. Forward-chaining inference
+ AI concept: rule-based expert system · conflict resolution by salience · refraction
+══════════════════════════════════════════════════════════════════════════════
+ Working memory (facts perceived for one loan):
+   days_overdue=3, days_past_grace=1, days_until_due=-3, reservation_queue=2, renewals_left=1, fine_amount=2, lost_after_days=30, predicted_risk=0.71, member_late_rate=0.4, member_unpaid_fines=120, member_type=student
+ Iter │ Rule              │ IF (matched facts)                      │ THEN assert         
+ ─────┼───────────────────┼─────────────────────────────────────────┼─────────────────────
+    1 │ R01_OVERDUE       │ days_overdue > 0                        │ OVERDUE             
+    1 │ R03_IN_DEMAND     │ reservation_queue >= 1                  │ IN_DEMAND           
+    1 │ R07_RISK_FLAG     │ predicted_risk >= 0.6                   │ HIGH_RISK_BORROWER  
+    2 │ R02_FINE_ACCRUING │ OVERDUE is true AND days_past_grace > 0 │ FINE_ACCRUING       
+    2 │ R04_HIGH_RECALL   │ OVERDUE is true AND IN_DEMAND is true   │ HIGH_RECALL_PRIORITY
+    3 │ R13_NOTIFY_RECALL │ HIGH_RECALL_PRIORITY is true            │ NOTIFY_RECALL       
+ R12 (plain overdue notice) fired? no — blocked because it needs HIGH_RECALL_PRIORITY to be false
+ Why NOTIFY_RECALL? R01_OVERDUE → R03_IN_DEMAND → R04_HIGH_RECALL → R13_NOTIFY_RECALL
+
+══════════════════════════════════════════════════════════════════════════════
+ 4. Fuzzy-logic priority level
+ AI concept: fuzzification · Mamdani rules (AND=min, OR=max) · defuzzification
+══════════════════════════════════════════════════════════════════════════════
+ Inputs: lateness = 7 days overdue · demand = 3 waiting · fine = ₹10 · risk = 0.40
+ Variable │ Non-zero memberships μ 
+ ─────────┼────────────────────────
+ lateness │ moderately_overdue=0.40
+ demand   │ high=0.50              
+ fine     │ small=1.00             
+ risk     │ low=0.25, medium=0.50  
+ Fuzzy rule                                               │ Strength │ → Level 
+ ─────────────────────────────────────────────────────────┼──────────┼─────────
+ F2: IF lateness is moderately_overdue AND demand is high │     0.40 │ Critical
+ Aggregated: Low 0.00, Medium 0.00, High 0.00, Critical 0.40
+ Level = Critical  (defuzzified crisp value 90.0)
+
+══════════════════════════════════════════════════════════════════════════════
+ 5. Weighted utility score (0-100)
+ AI concept: utility-based agent · multi-attribute utility
+══════════════════════════════════════════════════════════════════════════════
+ Factor                                │ Raw    │ Normalised │ Weight │ Points
+ ──────────────────────────────────────┼────────┼────────────┼────────┼───────
+ Urgency of the notification type      │ recall │       1.00 │     25 │  25.00
+ Days overdue (30+ days = max)         │ 7      │       0.23 │     20 │   4.67
+ Reservation demand (5+ waiting = max) │ 3      │       0.60 │     20 │  12.00
+ Fine amount (₹500+ = max)             │ 10     │       0.02 │     10 │   0.20
+ Predicted late-return risk            │ 0.4    │       0.40 │     15 │   6.00
+ Member's past late-return rate        │ 0.35   │       0.35 │     10 │   3.50
+ Score = 51.37/100 · fuzzy level = Critical
+ Channel for Critical (member prefers email) → sms    Critical priority → escalated to SMS for immediate attention (also visible in-app).
+ Channel for High     (member prefers sms  ) → sms    High priority → member's preferred channel (sms).
+ Channel for Medium   (member prefers sms  ) → in_app Medium priority → in-app only (no external message for routine notices).
+
+══════════════════════════════════════════════════════════════════════════════
+ 6. Heap-based notification priority queue
+ AI concept: priority queue / min-heap on (−level, −score, arrival)
+══════════════════════════════════════════════════════════════════════════════
+ Pushed in this order:
+ Candidate                  │ Level    │ Score
+ ───────────────────────────┼──────────┼──────
+ Due-soon reminder · Riya   │ Low      │  15.2
+ Recall · Aarav (2 waiting) │ High     │  50.2
+ Overdue · Kabir            │ Medium   │  27.8
+ Fine summary · Rohan       │ High     │  26.9
+ Overdue · Deepak (20 days) │ Critical │  41.3
+ Reservation ready · Meera  │ Medium   │  21.5
+ Popped from the heap (dispatch order):
+ # │ Notification              
+ ──┼───────────────────────────
+ 1 │ Overdue · Deepak (20 days)
+ 2 │ Recall · Aarav (2 waiting)
+ 3 │ Fine summary · Rohan      
+ 4 │ Overdue · Kabir           
+ 5 │ Reservation ready · Meera 
+ 6 │ Due-soon reminder · Riya  
+
+══════════════════════════════════════════════════════════════════════════════
+ 7. Anti-spam guard
+ AI concept: constraint checking on actions
+══════════════════════════════════════════════════════════════════════════════
+ Situation                                  │ Decision │ Reason                                                                        
+ ───────────────────────────────────────────┼──────────┼───────────────────────────────────────────────────────────────────────────────
+ Same overdue notice again (sent yesterday) │ SUPPRESS │ Cooldown: same notice sent 1 day(s) ago (cooldown 3 days, level not escalated)
+ Recall escalated High → Critical           │ SEND     │ passes all checks                                                             
+ 4th notice today for one member            │ SUPPRESS │ Daily limit: member already received 3 notification(s) today (limit 3)        
+ Critical notice for that same member       │ SEND     │ passes all checks                                                             
+ A brand-new notice                         │ SEND     │ passes all checks                                                             
+
+══════════════════════════════════════════════════════════════════════════════
+ 8. Machine learning: late-return risk
+ AI concept: supervised classification · model comparison · no leakage
+══════════════════════════════════════════════════════════════════════════════
+ Training Logistic Regression and Decision Tree on a SYNTHETIC dataset (4,000 rows, seed 42) + library history…
+ Model               │ Accuracy │ Precision │ Recall │    F1 │ ROC AUC │ Selected
+ ────────────────────┼──────────┼───────────┼────────┼───────┼─────────┼─────────
+ Logistic Regression │    0.668 │     0.536 │  0.601 │ 0.567 │   0.717 │ ✔       
+ Decision Tree       │    0.649 │     0.514 │  0.474 │ 0.493 │   0.667 │         
+ Logistic Regression confusion matrix:   pred on-time  pred late
+   actual on-time          531        221
+   actual late             169        255
+   top features: category=Physics (10%), unpaid_fines (9%), prior_late_rate (9%), exam_period (9%)
+ Decision Tree confusion matrix:   pred on-time  pred late
+   actual on-time          562        190
+   actual late             223        201
+   top features: prior_late_rate (28%), unpaid_fines (24%), exam_period (21%), prior_loans (8%)
+ Excluded (sensitive): name, gender, age / date of birth, religion / caste, home address, nationality, disability status, phone / email
+ Example checkout → 94% late-return risk (high) using Logistic Regression. Main factors:
+   • unpaid_fines = 200 (raises risk 0.74)
+   • exam_period = 1 (raises risk 0.53)
+   • prior_late_rate = 0.6 (raises risk 0.48)
+   • active_loans = 3 (raises risk 0.41)
+   • title_demand = 2 (raises risk 0.28)
+ Decision support only: it can make a reminder earlier — it never sets a fine or a penalty.
+
+══════════════════════════════════════════════════════════════════════════════
+ 9. Fairness guard on the knowledge base
+ AI concept: responsible AI · taint analysis over the rule graph
+══════════════════════════════════════════════════════════════════════════════
+ Trying to add:  IF predicted_risk >= 0.8 THEN RECOMMEND_RESTRICTION
+ REJECTED: Fairness guard: 'RECOMMEND_RESTRICTION' is a penalising action and cannot depend on the ML prediction (dependency through rule R99_UNFAIR). Predictions are decision support only.
+
+══════════════════════════════════════════════════════════════════════════════
+ 10. One full sense → think → act cycle on the library data
+ AI concept: agent loop
+══════════════════════════════════════════════════════════════════════════════
+ PERCEIVE  64 active loans · 6 overdue · 5 due within 2 days · 8 reservations waiting · ₹1794 unpaid
+ THINK     63 rule firings in 3 iterations: R03_IN_DEMAND×11, R07_RISK_FLAG×9, R01_OVERDUE×6, R02_FINE_ACCRUING×6, R06_DUE_SOON×5, R10_NOTIFY_DUE_SOON×5, R20_FINE_NOTICE×3, R04_HIGH_RECALL×3
+ ACT       0 notifications sent, 15 suppressed, 0 queued · cycle took 214 ms
+ RECOMMEND Call Deepak Joshi (+91 9371507194) about “Electronic Devices and Circuit Theory”
+ RECOMMEND Call Suresh Yadav (+91 9308832106) about “Higher Engineering Mathematics”
+
+══════════════════════════════════════════════════════════════════════════════
+ 11. Guided scenario: reserved book becomes overdue
+ AI concept: everything together, day by day
+══════════════════════════════════════════════════════════════════════════════
+
+ Step 0 · 2026-11-03 · Set the scene
+   ▸ Aarav Sharma (student) borrows the only copy of “Artificial Intelligence: A Modern Approach” — due 2026-11-05 (2 days from now).
+   ▸ At checkout the ML model estimated a 95% late-return risk (high). This is stored as decision support only.
+   ▸ Dr. Meera Iyer (faculty) reserves the title and is #1 in the queue (reservation #17).
+   ▸ 2026-11-09 is marked as “Library Foundation Day (demo holiday)” so you can see holiday exclusion in the fine later.
+   ▸ Student policy: 2-day grace, slabs days 1-7 ₹2/day, days 8-14 ₹5/day, days 15+ ₹10/day, cap ₹300.
+
+ Step 1 · 2026-11-04 · Advance 1 day — due-soon reminder
+   ▸ Clock → 2026-11-04. Perceived: “days_until_due = 1”.
+   ▸ Rules fired: R06_DUE_SOON (0 ≤ days_until_due ≤ 2) → DUE_SOON, then R10 → NOTIFY_DUE_SOON.
+   ▸ Notification #466: Medium (utility 34.34/100, fuzzy crisp 40.0) via in_app — Medium priority → in-app only (no external message for routine notices).
+
+ Step 2 · 2026-11-06 · Advance 2 days — the book becomes overdue
+   ▸ Clock → 2026-11-06. The loan is now 1 day(s) overdue.
+   ▸ Forward chaining: R01 → OVERDUE, R03 → IN_DEMAND (queue = 1), R04: OVERDUE ∧ IN_DEMAND ⇒ HIGH_RECALL_PRIORITY ⇒ R13 NOTIFY_RECALL.
+   ▸ R12 (plain overdue notice) did not fire because it requires HIGH_RECALL_PRIORITY to be false — salience ordering at work.
+   ▸ Suppressed #486 (due soon): Cooldown: same notice sent 1 day(s) ago (cooldown 2 days, level not escalated).
+   ▸ Sent #503 recall — High, score 48.75, channel sms. High priority → member's preferred channel (sms).
+   ▸ No fine yet: still inside the 2-day grace period.
+
+ Step 3 · 2026-11-12 · Demand grows, advance 6 days — fine accrues, priority escalates
+   ▸ Riya Patel and Kabir Singh also reserve the title → reservation_queue = 3 (fuzzy demand is now partly ‘high’).
+   ▸ Clock → 2026-11-12: 7 days overdue. R14 fired: recall ignored ≥ 7 days ⇒ ESCALATE_TO_LIBRARIAN.
+   ▸ 2026-11-07 suppressed #526: Cooldown: same notice sent 1 day(s) ago (cooldown 2 days, level not escalated).
+   ▸ 2026-11-08 sent #550 recall: High (score 58.09). Fuzzy: F4: lateness is slightly_overdue AND demand is (medium OR high) → High (0.5).
+   ▸ 2026-11-09 suppressed #578: Cooldown: same notice sent 1 day(s) ago (cooldown 2 days, level not escalated).
+   ▸ 2026-11-10 sent #609 recall: High (score 59.46). Fuzzy: F4: lateness is slightly_overdue AND demand is (medium OR high) → High (0.5).
+   ▸ 2026-11-11 suppressed #644: Cooldown: same notice sent 1 day(s) ago (cooldown 2 days, level not escalated).
+   ▸ 2026-11-12 sent #684 recall: Critical (score 60.87). Fuzzy: F2: lateness is moderately_overdue AND demand is high → Critical (0.4).
+   ▸ Fine so far ₹6: 7 day(s) overdue: 2 grace, 2 excluded (holidays/Sundays), 3 chargeable → ₹6.
+
+ Step 4 · 2026-11-12 · Aarav returns the book
+   ▸ Aarav returns the book on 2026-11-12.
+   ▸ Final fine ₹6 — 7 day(s) overdue: 2 grace, 2 excluded (holidays/Sundays), 3 chargeable → ₹6.
+   ▸ Itemised: 3 charged day(s); skipped: 2026-11-08 (sunday), 2026-11-09 (holiday).
+   ▸ Reflex action: the copy is put on hold for Dr. Meera Iyer (first in the FIFO queue) until 2026-11-17.
+   ▸ Notification #735 to Dr. Meera Iyer: Medium (26.21) via in_app — “Good news: “Artificial Intelligence: A Modern Approach” is ready for you”.
+   ▸ Earlier recall notifications are marked ‘resolved’ (used in the notification-outcome analytics).
+
+ Step 5 · 2026-11-12 · Partial payment and collection
+   ▸ Aarav pays ₹3 by UPI — partial payment; balance ₹3 (status: partially paid).
+   ▸ Dr. Meera Iyer collects the held copy — reservation fulfilled, new loan #768 due 2026-12-12.
+   ▸ Agent cycle #34: 2026-11-12: 27 overdue · 147 rule firings · 0 notifications sent (52 suppressed) · 0 fines updated
+   ▸ Demo complete — open Explainability to inspect any cycle, rule firing, fuzzy membership or score breakdown.

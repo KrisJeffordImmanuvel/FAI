@@ -28,6 +28,8 @@ the database (about 10 s) and starts the server. Later runs start in a few secon
 | `python run.py --test` | Run backend (pytest) and frontend (Vitest) tests |
 | `python run.py --dev` | Hot-reload mode: API on :8000 and Vite dev server on :5173 |
 | `python run.py --no-browser` | Start without opening the website automatically |
+| `python run.py --console` | Print every AI technique's output in the terminal (no website); also saved to `outputs/ai_outputs.txt` |
+| `python run.py --verbose` | Also log one line per web request |
 
 <details>
 <summary>Manual steps (if you prefer)</summary>
@@ -50,13 +52,36 @@ The project includes ready-made VS Code settings (`.vscode/`).
 2. **Press `F5`** (or **Run → Start Debugging**) and pick **"Run Library Agent (opens in browser)"** if VS Code asks.
    - The **Terminal** panel shows every step (install → build → seed) and then the live server log, one line per request.
    - When the server is ready you'll see `✔ Website is ready: http://localhost:8000`, and the site **opens in your browser automatically**.
-3. **Stop** with the red ■ button (or `Shift+F5`) or press `Ctrl+C` in the terminal; the server shuts down cleanly.
+3. **Watch the agent in the Terminal panel.** Everything the agent does is printed live:
+   - each cycle's percepts, the rules that fired and the HIGH_RECALL_PRIORITY decisions;
+   - every notification, with its level, channel and score;
+   - fine updates, recommendations and approval requests;
+   - every librarian or member action.
+
+   For example, use **Agent control → Run one cycle** or **Play full demo** in the website and watch the terminal.
+4. **Stop** with the red ■ button (or `Shift+F5`) or press `Ctrl+C` in the terminal; the server shuts down cleanly.
+
+**Terminal-only AI outputs (no website):** choose **"Show AI outputs in the terminal (no website)"** in the F5 dropdown (or **Terminal → Run Task…**). It prints 11 sections:
+1. PEAS
+2. Day-by-day fine statement
+3. Forward-chaining trace
+4. Fuzzy memberships and rules
+5. Utility-score breakdown
+6. Heap dispatch order
+7. Anti-spam decisions
+8. ML metrics, confusion matrices and prediction factors
+9. Fairness-guard rejection
+10. A full agent cycle
+11. The guided scenario
+
+The output is saved to `outputs/ai_outputs.txt`, which you can paste into your report; a sample is in `docs/SAMPLE_AI_OUTPUT.txt`. It runs on a temporary copy of the database, so your data is never changed.
 
 **Open the website inside VS Code instead:** **Terminal → Run Task… → "Run Library Agent inside VS Code"**. The server starts in the Terminal panel and the site opens in a VS Code browser tab. Any time later you can also run **`Ctrl+Shift+P` → "Simple Browser: Show"** → `http://localhost:8000`.
 
 | VS Code entry | Where | What it does |
 |---|---|---|
-| Run Library Agent (opens in browser) | `F5` / Run and Debug | Normal start; opens your browser |
+| Run Library Agent (opens in browser) | `F5` / Run and Debug | Normal start; opens your browser; live agent output in the terminal |
+| Show AI outputs in the terminal (no website) | Run and Debug / Run Task | Prints all AI results in the terminal and saves them to `outputs/ai_outputs.txt` |
 | Run Library Agent (reset demo data first) | Run and Debug | Re-seeds the database, then starts |
 | Debug backend with breakpoints | Run and Debug | Runs the API under the debugger so breakpoints in `backend/app/...` stop (run the app once first so `backend/.venv` exists) |
 | Run Library Agent inside VS Code | Terminal → Run Task | Starts the server and opens the site in a VS Code tab |

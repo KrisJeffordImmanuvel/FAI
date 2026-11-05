@@ -5,6 +5,7 @@ from typing import Any
 
 from sqlalchemy.orm import Session
 
+from .. import console
 from ..models import AgentEvent, AuditLog, User
 from .settings import today
 
@@ -18,17 +19,20 @@ def audit(
     details: dict[str, Any] | None = None,
     actor_label: str | None = None,
 ) -> None:
+    label = actor_label or (f"{actor.name} ({actor.role})" if actor else "Agent")
     db.add(
         AuditLog(
             sim_date=today(db),
             actor_user_id=actor.id if actor else None,
-            actor_label=actor_label or (f"{actor.name} ({actor.role})" if actor else "Agent"),
+            actor_label=label,
             action=action,
             entity=entity,
             entity_id=entity_id,
             details=details or {},
         )
     )
+    if actor is not None or actor_label:  # agent-internal audits are already shown as timeline events
+        console.action_line(label, action, entity, entity_id, details)
 
 
 def event(
@@ -56,4 +60,8 @@ def event(
         loan_id=loan_id,
     )
     db.add(ev)
+    if kind == "percepts":
+        console.banner(f"Agent cycle #{cycle_id} · simulated date {ev.sim_date}")
+    if kind != "notification.sent":  # already printed as a notification line by the notifier
+        console.phase_line(phase, title, detail, ev.sim_date)
     return ev

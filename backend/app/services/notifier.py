@@ -8,6 +8,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from .. import console
 from ..models import Member, Notification
 from . import fuzzy
 from .priority import NotificationQueue, PriorityDecision, PriorityInputs, choose_channel, prioritise, render
@@ -202,6 +203,7 @@ def dispatch(db: Session, candidates: list[Candidate], cycle_id: int | None = No
         if status == "sent":
             guard.record(c.kind, c.dedupe_key, c.member_id, d.level)
             sent += 1
+            console.notification_line(d.level, c.kind, member.name if member else str(c.member_id), channel, d.score, subject)
         elif status == "suppressed":
             guard.mark_seen(c.dedupe_key)
             suppressed += 1
