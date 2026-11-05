@@ -18,7 +18,7 @@ Requirements: **Python 3.10+** and **Node.js 18+** (npm).
 python run.py
 ```
 
-Then open **http://localhost:8000**. On first run this creates `backend/.venv`, installs dependencies, builds the frontend, seeds
+The website opens automatically at **http://localhost:8000** once the server is ready. On first run this creates `backend/.venv`, installs dependencies, builds the frontend, seeds
 the database (about 10 s) and starts the server. Later runs start in a few seconds.
 
 | Command | What it does |
@@ -27,6 +27,7 @@ the database (about 10 s) and starts the server. Later runs start in a few secon
 | `python run.py --reset` | Wipe and re-seed the database, then serve |
 | `python run.py --test` | Run backend (pytest) and frontend (Vitest) tests |
 | `python run.py --dev` | Hot-reload mode: API on :8000 and Vite dev server on :5173 |
+| `python run.py --no-browser` | Start without opening the website automatically |
 
 <details>
 <summary>Manual steps (if you prefer)</summary>
@@ -40,6 +41,29 @@ cd ../frontend && npm install && npm run build
 cd ../backend && .venv/bin/python -m uvicorn app.main:app --port 8000
 ```
 </details>
+
+## Using VS Code
+
+The project includes ready-made VS Code settings (`.vscode/`).
+
+1. **File → Open Folder…** and choose the `FAI` folder. Accept the prompt to install the recommended extensions (Python + Python Debugger).
+2. **Press `F5`** (or **Run → Start Debugging**) and pick **"Run Library Agent (opens in browser)"** if VS Code asks.
+   - The **Terminal** panel shows every step (install → build → seed) and then the live server log, one line per request.
+   - When the server is ready you'll see `✔ Website is ready: http://localhost:8000`, and the site **opens in your browser automatically**.
+3. **Stop** with the red ■ button (or `Shift+F5`) or press `Ctrl+C` in the terminal; the server shuts down cleanly.
+
+**Open the website inside VS Code instead:** **Terminal → Run Task… → "Run Library Agent inside VS Code"**. The server starts in the Terminal panel and the site opens in a VS Code browser tab. Any time later you can also run **`Ctrl+Shift+P` → "Simple Browser: Show"** → `http://localhost:8000`.
+
+| VS Code entry | Where | What it does |
+|---|---|---|
+| Run Library Agent (opens in browser) | `F5` / Run and Debug | Normal start; opens your browser |
+| Run Library Agent (reset demo data first) | Run and Debug | Re-seeds the database, then starts |
+| Debug backend with breakpoints | Run and Debug | Runs the API under the debugger so breakpoints in `backend/app/...` stop (run the app once first so `backend/.venv` exists) |
+| Run Library Agent inside VS Code | Terminal → Run Task | Starts the server and opens the site in a VS Code tab |
+| Run all tests | Terminal → Run Task (or `Ctrl+Shift+P` → "Tasks: Run Test Task") | pytest + Vitest output in the terminal |
+| Run in developer mode (hot reload) | Terminal → Run Task | API + Vite dev server; edits reload instantly |
+
+`Ctrl+Shift+B` also runs the default task, the normal start.
 
 ## Demo logins (also shown on the login page)
 
