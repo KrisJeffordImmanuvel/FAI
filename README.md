@@ -28,7 +28,7 @@ the database (about 10 s) and starts the server. Later runs start in a few secon
 | `python run.py --test` | Run backend (pytest) and frontend (Vitest) tests |
 | `python run.py --dev` | Hot-reload mode: API on :8000 and Vite dev server on :5173 |
 | `python run.py --no-browser` | Start without opening the website automatically |
-| `python run.py --console` | Print every AI technique's output in the terminal (no website); also saved to `outputs/ai_outputs.txt` |
+| `python ai_outputs.py` (same as `python run.py --console`) | Print every AI technique's output in the terminal (no website); also saved to `outputs/ai_outputs.txt` |
 | `python run.py --verbose` | Also log one line per web request |
 
 <details>
@@ -61,7 +61,7 @@ The project includes ready-made VS Code settings (`.vscode/`).
    For example, use **Agent control → Run one cycle** or **Play full demo** in the website and watch the terminal.
 4. **Stop** with the red ■ button (or `Shift+F5`) or press `Ctrl+C` in the terminal; the server shuts down cleanly.
 
-**Terminal-only AI outputs (no website):** choose **"Show AI outputs in the terminal (no website)"** in the F5 dropdown (or **Terminal → Run Task…**). It prints 11 sections:
+**Terminal-only AI outputs (no website):** open **`ai_outputs.py`** and click the ▶ **Run Python File** button (or run `python ai_outputs.py`), or choose **"Show AI outputs in the terminal (no website)"** in the F5 dropdown (or **Terminal → Run Task…**). It prints 11 sections:
 1. PEAS
 2. Day-by-day fine statement
 3. Forward-chaining trace
