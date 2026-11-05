@@ -90,6 +90,10 @@ The output is saved to `outputs/ai_outputs.txt`, which you can paste into your r
 
 `Ctrl+Shift+B` also runs the default task, the normal start.
 
+## Deploying online
+
+The app ships with a `Dockerfile` and a Render Blueprint (`render.yaml`). On **render.com**: **New + → Blueprint → this repo → Apply**, and you get a public URL in about 10 minutes, on the free plan. Full steps, free-plan caveats and other hosts are in **[docs/DEPLOY.md](docs/DEPLOY.md)**.
+
 ## Demo logins (also shown on the login page)
 
 | Role | Email | Password | Can do |

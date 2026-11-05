@@ -1,0 +1,15 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+# Dashboard → New → Blueprint → pick this repository → Apply.
+services:
+  - type: web
+    name: circulus-library-agent
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: LIBRARY_SECRET          # signs login tokens; Render generates a random value
+        generateValue: true
+      - key: LIBRARY_CONSOLE_LOG     # show the agent's decisions in Render's Logs tab
+        value: "1"

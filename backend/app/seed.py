@@ -13,6 +13,7 @@ Run: ``python -m app.seed`` (``--reset`` to wipe and reseed).
 from __future__ import annotations
 
 import argparse
+import os
 import random
 import shutil
 import sys
@@ -604,6 +605,19 @@ def seed_all(db: Session, verbose: bool = True) -> None:
 
 
 def reset_database(verbose: bool = False) -> None:
+    """Wipe and re-seed. The warm-up's agent activity is kept out of the live console log."""
+    previous = os.environ.get("LIBRARY_CONSOLE_LOG")
+    os.environ["LIBRARY_CONSOLE_LOG"] = "0"
+    try:
+        _reset_database(verbose)
+    finally:
+        if previous is None:
+            os.environ.pop("LIBRARY_CONSOLE_LOG", None)
+        else:
+            os.environ["LIBRARY_CONSOLE_LOG"] = previous
+
+
+def _reset_database(verbose: bool) -> None:
     dbm.drop_all()
     if config.MODELS_DIR.exists():
         shutil.rmtree(config.MODELS_DIR)
