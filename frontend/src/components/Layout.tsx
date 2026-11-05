@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import {
-  ArrowLeftRight, Bell, BookOpen, BookmarkCheck, BrainCircuit, CalendarClock, ChartLine, Circle, Cpu, Info, LayoutDashboard, Lightbulb, LogOut, Menu,
+  ArrowLeftRight, Bell, KeyRound, BookOpen, BookmarkCheck, BrainCircuit, CalendarClock, ChartLine, Circle, Cpu, Info, LayoutDashboard, Lightbulb, LogOut, Menu,
   Moon, Network, Receipt, ScrollText, Settings, ShieldCheck, Sun, Users, X, Zap, type LucideIcon,
 } from "lucide-react";
 import { useAuth, useUser } from "../context/AuthContext";
@@ -10,6 +10,7 @@ import { useAgent } from "../context/AgentContext";
 import { navFor, type NavItem } from "../lib/roles";
 import { fmtDate, humanise } from "../lib/format";
 import { cx } from "./ui";
+import ChangePasswordModal from "./ChangePassword";
 
 const ICONS: Record<string, LucideIcon> = {
   ArrowLeftRight, Bell, BookOpen, BookmarkCheck, BrainCircuit, ChartLine, Cpu, Info, LayoutDashboard, Lightbulb, Network, Receipt, ScrollText, Settings,
@@ -93,6 +94,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { logout } = useAuth();
   const { theme, toggle } = useTheme();
   const [open, setOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
   const location = useLocation();
   const items = navFor(user.role);
 
@@ -109,7 +111,8 @@ export default function Layout({ children }: { children: ReactNode }) {
       <div className="mt-auto rounded-lg border border-line bg-surface p-3 text-sm">
         <p className="truncate font-medium">{user.name}</p>
         <p className="truncate text-xs text-muted">{humanise(user.role)} · {user.email}</p>
-        <button className="btn-ghost mt-2 w-full justify-start px-2" onClick={logout}><LogOut className="h-4 w-4" aria-hidden /> Sign out</button>
+        <button className="btn-ghost mt-2 w-full justify-start px-2" onClick={() => { setOpen(false); setPwOpen(true); }}><KeyRound className="h-4 w-4" aria-hidden /> Change password</button>
+        <button className="btn-ghost w-full justify-start px-2" onClick={logout}><LogOut className="h-4 w-4" aria-hidden /> Sign out</button>
       </div>
     </div>
   );
@@ -138,6 +141,7 @@ export default function Layout({ children }: { children: ReactNode }) {
             </button>
           </div>
         </header>
+        <ChangePasswordModal open={pwOpen} onClose={() => setPwOpen(false)} />
         <main id="main" className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">{children}</main>
       </div>
     </div>

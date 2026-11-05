@@ -8,6 +8,13 @@ export function required(value: string, label: string, min = 1): string | null {
   return value.trim().length < min ? (min > 1 ? `${label} must be at least ${min} characters` : `${label} is required`) : null;
 }
 
+/** Mirrors the backend rule: 8+ characters containing letters and digits. */
+export function passwordError(pw: string): string | null {
+  if (pw.length < 8) return "At least 8 characters";
+  if (!/[A-Za-z]/.test(pw) || !/\d/.test(pw)) return "Use both letters and digits";
+  return null;
+}
+
 export function amountError(value: string | number, max: number): string | null {
   const n = typeof value === "number" ? value : Number(value);
   if (!Number.isFinite(n) || n <= 0) return "Enter an amount greater than zero";

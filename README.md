@@ -49,7 +49,10 @@ cd ../backend && .venv/bin/python -m uvicorn app.main:app --port 8000
 | Librarian | `librarian@library.local` | `Librarian@123` | Books, circulation, fines, approvals, notifications, agent control |
 | Member | `member@library.local` | `Member@123` | Search, own loans/renewals, reservations, fines, notifications (student Aarav Sharma) |
 
-Every other seeded member can sign in with their college email (e.g. `meera.iyer@college.edu`) and `Member@123`.
+All 35 other seeded members can also sign in, each with their college email (e.g. `meera.iyer@college.edu`) and `Member@123`. The login page has a searchable list of these accounts; click one to fill the form.
+
+- **Create account** (tab on the login page): anyone can register as a library **member** (student, faculty or staff) with their own email and password. Staff accounts can only be created by an admin, in Administration → Users.
+- **Change password**: available from the sidebar for every account. Members added by a librarian start with `Member@123` and should change it.
 
 ## Feature overview
 

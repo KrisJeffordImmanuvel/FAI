@@ -96,24 +96,36 @@ def set_preferences(body: PreferencesIn, db: Session = Depends(get_db), user: Us
     return S.member(member)
 
 
-@router.post("/members", status_code=201)
-def create_member(body: MemberIn, db: Session = Depends(get_db), user: User = Depends(staff)) -> dict:
-    email = body.email.lower()
+def create_member_account(db: Session, *, name: str, email: str, phone: str, member_type: str, department: str,
+                          notify_pref: str, password: str | None) -> tuple[Member, User | None]:
+    """Create a member (and optionally their login). Shared by staff creation and self sign-up."""
+    email = email.lower()
     if db.scalar(select(Member.id).where(Member.email == email)) or db.scalar(select(User.id).where(User.email == email)):
-        raise HTTPException(409, "A member or user with this email already exists")
-    prefix = {"student": "S", "faculty": "F", "staff": "T"}[body.member_type]
-    n = (db.scalar(select(func.count(Member.id)).where(Member.member_type == body.member_type)) or 0) + 1
+        raise HTTPException(409, "An account with this email already exists — try signing in instead")
+    prefix = {"student": "S", "faculty": "F", "staff": "T"}[member_type]
+    n = (db.scalar(select(func.count(Member.id)).where(Member.member_type == member_type)) or 0) + 1
     code = f"{prefix}{9000 + n}"
     while db.scalar(select(Member.id).where(Member.code == code)):
         n += 1
         code = f"{prefix}{9000 + n}"
-    m = Member(code=code, name=body.name, email=email, phone=body.phone, member_type=body.member_type, department=body.department,
-               joined_on=today(db), status="active", notify_pref=body.notify_pref)
+    m = Member(code=code, name=name, email=email, phone=phone, member_type=member_type, department=department,
+               joined_on=today(db), status="active", notify_pref=notify_pref)
     db.add(m)
     db.flush()
-    if body.create_login:
-        db.add(User(email=email, name=body.name, password_hash=hash_password("Member@123"), role="member", member_id=m.id))
-    audit(db, "member.create", "member", m.id, user, {"code": code, "type": body.member_type})
+    user = None
+    if password is not None:
+        user = User(email=email, name=name, password_hash=hash_password(password), role="member", member_id=m.id)
+        db.add(user)
+        db.flush()
+    return m, user
+
+
+@router.post("/members", status_code=201)
+def create_member(body: MemberIn, db: Session = Depends(get_db), user: User = Depends(staff)) -> dict:
+    m, _ = create_member_account(db, name=body.name, email=body.email, phone=body.phone, member_type=body.member_type,
+                                 department=body.department, notify_pref=body.notify_pref,
+                                 password="Member@123" if body.create_login else None)
+    audit(db, "member.create", "member", m.id, user, {"code": m.code, "type": body.member_type})
     db.commit()
     return S.member(m) | {"initial_password": "Member@123" if body.create_login else None}
 

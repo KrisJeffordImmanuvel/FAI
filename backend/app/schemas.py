@@ -21,6 +21,39 @@ class LoginIn(Strict):
     password: str = Field(min_length=1, max_length=128)
 
 
+def _strong_password(v: str) -> str:
+    if not any(c.isdigit() for c in v) or not any(c.isalpha() for c in v):
+        raise ValueError("Password must contain letters and digits")
+    return v
+
+
+class RegisterIn(Strict):
+    """Self-service sign-up. Always creates a *member* account — never staff."""
+
+    name: str = Field(min_length=2, max_length=120)
+    email: str = Field(pattern=EMAIL_RE, max_length=120)
+    password: str = Field(min_length=8, max_length=128)
+    member_type: MemberType = "student"
+    department: str = Field(min_length=2, max_length=60)
+    phone: str = Field(default="", pattern=r"^(\+?[0-9 ]{8,16})?$")
+    notify_pref: Channel = "email"
+
+    @field_validator("password")
+    @classmethod
+    def strong(cls, v: str) -> str:
+        return _strong_password(v)
+
+
+class ChangePasswordIn(Strict):
+    current_password: str = Field(min_length=1, max_length=128)
+    new_password: str = Field(min_length=8, max_length=128)
+
+    @field_validator("new_password")
+    @classmethod
+    def strong(cls, v: str) -> str:
+        return _strong_password(v)
+
+
 class BookIn(Strict):
     isbn: str = Field(pattern=r"^\d{10}(\d{3})?$", description="ISBN-10 or ISBN-13 (digits only)")
     title: str = Field(min_length=1, max_length=255)
@@ -187,9 +220,7 @@ class UserIn(Strict):
     @field_validator("password")
     @classmethod
     def strong(cls, v: str) -> str:
-        if not any(c.isdigit() for c in v) or not any(c.isalpha() for c in v):
-            raise ValueError("Password must contain letters and digits")
-        return v
+        return _strong_password(v)
 
 
 class UserUpdate(Strict):

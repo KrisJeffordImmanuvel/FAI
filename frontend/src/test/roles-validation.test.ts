@@ -73,3 +73,13 @@ describe("formatting and api helpers", () => {
     expect(errorMessage(null, "fallback")).toBe("fallback");
   });
 });
+
+describe("password rules (mirror backend)", async () => {
+  const { passwordError } = await import("../lib/validation");
+  it("requires 8+ characters with letters and digits", () => {
+    expect(passwordError("short1")).toMatch(/8 characters/);
+    expect(passwordError("password")).toMatch(/letters and digits/);
+    expect(passwordError("12345678")).toMatch(/letters and digits/);
+    expect(passwordError("Library2026")).toBeNull();
+  });
+});

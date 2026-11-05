@@ -63,3 +63,36 @@ def test_admin_can_manage(client, admin_h):
     r = client.post("/api/admin/users", headers=admin_h, json={"email": "new.lib@library.local", "name": "New Librarian", "role": "librarian", "password": "Secret123"})
     assert r.status_code == 201
     assert login(client, "new.lib@library.local", "Secret123")
+
+
+def test_self_registration_creates_member_only(client):
+    body = {"name": "Kris Jefford", "email": "Kris.J@college.edu", "password": "Library2026", "member_type": "student", "department": "CSE"}
+    r = client.post("/api/auth/register", json=body)
+    assert r.status_code == 201, r.text
+    data = r.json()
+    assert data["user"]["role"] == "member" and data["user"]["member_id"] and data["member_code"].startswith("S")
+    me = client.get("/api/me/summary", headers={"Authorization": f"Bearer {data['token']}"})
+    assert me.status_code == 200 and me.json()["name"] == "Kris Jefford"
+    assert login(client, "kris.j@college.edu", "Library2026")  # email is case-insensitive
+    assert client.post("/api/auth/register", json=body).status_code == 409  # duplicate
+    weak = dict(body, email="weak@college.edu", password="password")
+    assert client.post("/api/auth/register", json=weak).status_code == 422
+    escalate = dict(body, email="boss@college.edu", role="admin")
+    assert client.post("/api/auth/register", json=escalate).status_code == 422  # cannot choose a role
+
+
+def test_change_password(client):
+    h = login(client, "riya.patel@college.edu", "Member@123")
+    bad = client.post("/api/auth/change-password", headers=h, json={"current_password": "wrong", "new_password": "NewPass123"})
+    assert bad.status_code == 400
+    ok = client.post("/api/auth/change-password", headers=h, json={"current_password": "Member@123", "new_password": "NewPass123"})
+    assert ok.status_code == 200
+    assert client.post("/api/auth/login", json={"email": "riya.patel@college.edu", "password": "Member@123"}).status_code == 401
+    assert login(client, "riya.patel@college.edu", "NewPass123")
+
+
+def test_demo_member_list_logins_work(client):
+    members = client.get("/api/auth/demo-members").json()
+    assert len(members) == 35
+    for m in members[:3] + members[-2:]:
+        assert login(client, m["email"], m["password"])
